@@ -27,7 +27,7 @@ from contextlib import contextmanager
 # ---------------------------------------------------------------------------
 # CONFIG - change DB_TYPE to "postgres" and fill env vars to use PostgreSQL
 # ---------------------------------------------------------------------------
-DB_TYPE = os.getenv("SKILLZHUB_DB", "postgres")   # "sqlite" or "postgres"
+DB_TYPE = os.getenv("SKILLZHUB_DB", "sqlite")   # "sqlite" or "postgres"
 SQLITE_PATH = os.path.join(os.path.dirname(__file__), "skillzhub.db")
 
 PG_CONFIG = {
