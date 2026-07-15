@@ -16,49 +16,32 @@ Grading rule:
 """
 
 import streamlit as st
-import sqlite3
 import os
 import hashlib
 from datetime import datetime
 from contextlib import contextmanager
 
 # ---------------------------------------------------------------------------
-# CONFIG - Try PostgreSQL via Streamlit Secrets, fallback to SQLite
+# CONFIG - Supabase PostgreSQL (cloud only, no SQLite fallback)
 # ---------------------------------------------------------------------------
-SQLITE_PATH = os.path.join(os.path.dirname(__file__), "skillzhub.db")
 
-# Track which database engine is actually in use (set by get_connection)
-_actual_postgres = False
-
-
-def _use_postgres():
-    """Check if PostgreSQL secrets are configured (no connection test)."""
+def _get_db_url():
+    """Get PostgreSQL connection URL from Streamlit secrets."""
     try:
-        # st.secrets raises KeyError if key doesn't exist - must use try/except
-        url = st.secrets["postgres"]["db_url"]
-        return bool(url)
-    except Exception:
-        return False
+        return st.secrets["postgres"]["db_url"]
+    except Exception as e:
+        raise RuntimeError(
+            "PostgreSQL not configured. Please add [postgres] section "
+            "with db_url in Streamlit secrets.toml"
+        ) from e
 
 
 @contextmanager
 def get_connection():
-    """Returns a DB connection. Uses PostgreSQL if secrets configured, else SQLite.
-    Falls back to SQLite if PostgreSQL connection fails."""
-    global _actual_postgres
-    if _use_postgres():
-        try:
-            import psycopg2
-            conn = psycopg2.connect(st.secrets["postgres"]["db_url"])
-            _actual_postgres = True
-        except Exception:
-            conn = sqlite3.connect(SQLITE_PATH)
-            conn.execute("PRAGMA foreign_keys = ON")
-            _actual_postgres = False
-    else:
-        conn = sqlite3.connect(SQLITE_PATH)
-        conn.execute("PRAGMA foreign_keys = ON")
-        _actual_postgres = False
+    """Returns a PostgreSQL database connection.
+    Requires Streamlit secrets to be configured with [postgres] db_url."""
+    import psycopg2
+    conn = psycopg2.connect(_get_db_url())
     try:
         yield conn
     finally:
@@ -66,8 +49,8 @@ def get_connection():
 
 
 def _ph():
-    """Placeholder style differs between sqlite (?) and postgres (%s)."""
-    return "%s" if _actual_postgres else "?"
+    """Placeholder style for PostgreSQL (%s)."""
+    return "%s"
 
 
 def _hash_password(password):
@@ -82,10 +65,7 @@ def init_db():
     with get_connection() as conn:
         cur = conn.cursor()
 
-        if _actual_postgres:
-            id_type = "SERIAL PRIMARY KEY"
-        else:
-            id_type = "INTEGER PRIMARY KEY AUTOINCREMENT"
+        id_type = "SERIAL PRIMARY KEY"
 
         cur.execute(f"""
             CREATE TABLE IF NOT EXISTS interns (
@@ -140,18 +120,9 @@ def init_db():
 def _ensure_columns(conn):
     """Add new columns to an existing tasks table if they're missing (safe upgrade)."""
     cur = conn.cursor()
-    # Check connection type: psycopg2 connections have 'encoding' attribute, sqlite3 doesn't
-    is_pg = type(conn).__module__.startswith("psycopg2")
-    if is_pg:
-        cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS file_name TEXT")
-        cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS file_path TEXT")
-        cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS submitted_at TEXT")
-    else:
-        cur.execute("PRAGMA table_info(tasks)")
-        existing = {row[1] for row in cur.fetchall()}
-        for col in ("file_name", "file_path", "submitted_at"):
-            if col not in existing:
-                cur.execute(f"ALTER TABLE tasks ADD COLUMN {col} TEXT")
+    cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS file_name TEXT")
+    cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS file_path TEXT")
+    cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS submitted_at TEXT")
     conn.commit()
 
 
@@ -226,20 +197,12 @@ def signup_intern(name, email, phone, department, joining_date, username, passwo
             ph = _ph()
             cur = conn.cursor()
             # 1. Create intern profile
-            if _actual_postgres:
-                cur.execute(
-                    f"""INSERT INTO interns (name, email, phone, department, joining_date, created_at)
-                        VALUES ({ph},{ph},{ph},{ph},{ph},{ph}) RETURNING id""",
-                    (name, email, phone, department, joining_date, datetime.now().isoformat()),
-                )
-                intern_id = cur.fetchone()[0]
-            else:
-                cur.execute(
-                    f"""INSERT INTO interns (name, email, phone, department, joining_date, created_at)
-                        VALUES ({ph},{ph},{ph},{ph},{ph},{ph})""",
-                    (name, email, phone, department, joining_date, datetime.now().isoformat()),
-                )
-                intern_id = cur.lastrowid
+            cur.execute(
+                f"""INSERT INTO interns (name, email, phone, department, joining_date, created_at)
+                    VALUES ({ph},{ph},{ph},{ph},{ph},{ph}) RETURNING id""",
+                (name, email, phone, department, joining_date, datetime.now().isoformat()),
+            )
+            intern_id = cur.fetchone()[0]
 
             # 2. Create user account linked to intern
             cur.execute(
@@ -332,10 +295,7 @@ def get_intern_score_summary():
     """Get each intern with their task count, avg score, and grade distribution."""
     with get_connection() as conn:
         cur = conn.cursor()
-        if _actual_postgres:
-            avg_sql = "ROUND(CAST(AVG(t.score) AS NUMERIC), 2)"
-        else:
-            avg_sql = "ROUND(AVG(t.score), 2)"
+        avg_sql = "ROUND(CAST(AVG(t.score) AS NUMERIC), 2)"
         cur.execute(f"""
             SELECT
                 i.id,
@@ -436,7 +396,7 @@ def get_tasks_by_status(status):
             JOIN interns i ON i.id = t.intern_id
             WHERE t.status = %s
             ORDER BY t.id DESC
-        """.replace("%s", _ph()), (status,))
+        """, (status,))
         cols = [d[0] for d in cur.description]
         return [dict(zip(cols, row)) for row in cur.fetchall()]
 
