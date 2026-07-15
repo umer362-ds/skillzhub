@@ -29,19 +29,26 @@ SQLITE_PATH = os.path.join(os.path.dirname(__file__), "skillzhub.db")
 
 
 def _use_postgres():
-    """Check if PostgreSQL secrets are configured."""
+    """Check if PostgreSQL secrets are configured (no connection test)."""
     try:
-        return st.secrets.get("postgres", {}).get("db_url") is not None
+        # st.secrets raises KeyError if key doesn't exist - must use try/except
+        url = st.secrets["postgres"]["db_url"]
+        return bool(url)
     except Exception:
         return False
 
 
 @contextmanager
 def get_connection():
-    """Returns a DB connection. Uses PostgreSQL if secrets configured, else SQLite."""
+    """Returns a DB connection. Uses PostgreSQL if secrets configured, else SQLite.
+    Falls back to SQLite if PostgreSQL connection fails."""
     if _use_postgres():
-        import psycopg2
-        conn = psycopg2.connect(st.secrets["postgres"]["db_url"])
+        try:
+            import psycopg2
+            conn = psycopg2.connect(st.secrets["postgres"]["db_url"])
+        except Exception:
+            conn = sqlite3.connect(SQLITE_PATH)
+            conn.execute("PRAGMA foreign_keys = ON")
     else:
         conn = sqlite3.connect(SQLITE_PATH)
         conn.execute("PRAGMA foreign_keys = ON")
