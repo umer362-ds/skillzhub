@@ -27,6 +27,9 @@ from contextlib import contextmanager
 # ---------------------------------------------------------------------------
 SQLITE_PATH = os.path.join(os.path.dirname(__file__), "skillzhub.db")
 
+# Track which database engine is actually in use (set by get_connection)
+_actual_postgres = False
+
 
 def _use_postgres():
     """Check if PostgreSQL secrets are configured (no connection test)."""
@@ -42,16 +45,20 @@ def _use_postgres():
 def get_connection():
     """Returns a DB connection. Uses PostgreSQL if secrets configured, else SQLite.
     Falls back to SQLite if PostgreSQL connection fails."""
+    global _actual_postgres
     if _use_postgres():
         try:
             import psycopg2
             conn = psycopg2.connect(st.secrets["postgres"]["db_url"])
+            _actual_postgres = True
         except Exception:
             conn = sqlite3.connect(SQLITE_PATH)
             conn.execute("PRAGMA foreign_keys = ON")
+            _actual_postgres = False
     else:
         conn = sqlite3.connect(SQLITE_PATH)
         conn.execute("PRAGMA foreign_keys = ON")
+        _actual_postgres = False
     try:
         yield conn
     finally:
@@ -60,7 +67,7 @@ def get_connection():
 
 def _ph():
     """Placeholder style differs between sqlite (?) and postgres (%s)."""
-    return "%s" if _use_postgres() else "?"
+    return "%s" if _actual_postgres else "?"
 
 
 def _hash_password(password):
