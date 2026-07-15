@@ -82,7 +82,7 @@ def init_db():
     with get_connection() as conn:
         cur = conn.cursor()
 
-        if _use_postgres():
+        if _actual_postgres:
             id_type = "SERIAL PRIMARY KEY"
         else:
             id_type = "INTEGER PRIMARY KEY AUTOINCREMENT"
@@ -226,7 +226,7 @@ def signup_intern(name, email, phone, department, joining_date, username, passwo
         with get_connection() as conn:
             cur = conn.cursor()
             # 1. Create intern profile
-            if _use_postgres():
+            if _actual_postgres:
                 cur.execute(
                     f"""INSERT INTO interns (name, email, phone, department, joining_date, created_at)
                         VALUES ({ph},{ph},{ph},{ph},{ph},{ph}) RETURNING id""",
