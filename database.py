@@ -22,7 +22,7 @@ from datetime import datetime
 from contextlib import contextmanager
 
 # ---------------------------------------------------------------------------
-# CONFIG - Supabase PostgreSQL (cloud only, no SQLite fallback)
+# CONFIG - Supabase PostgreSQL (Robust connection handling)
 # ---------------------------------------------------------------------------
 
 def _get_db_url():
@@ -39,9 +39,24 @@ def _get_db_url():
 @contextmanager
 def get_connection():
     """Returns a PostgreSQL database connection.
-    Requires Streamlit secrets to be configured with [postgres] db_url."""
+    Parses the DB URL securely to avoid psycopg2 parsing issues with special characters."""
     import psycopg2
-    conn = psycopg2.connect(_get_db_url())
+    import urllib.parse as urlparse
+    
+    db_url = _get_db_url()
+    url = urlparse.urlparse(db_url)
+    
+    # Password me se URL encoding (%40 etc) ko clean karna
+    password = urlparse.unquote(url.password) if url.password else ""
+    
+    # Explicit parameters ke sath connection open karna (No parsing error fallback)
+    conn = psycopg2.connect(
+        dbname=url.path[1:],
+        user=url.username,
+        password=password,
+        host=url.hostname,
+        port=url.port
+    )
     try:
         yield conn
     finally:
