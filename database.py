@@ -294,8 +294,7 @@ def add_intern(name, email, phone, department, joining_date):
     with get_connection() as conn:
         cur = conn.cursor()
         cur.execute(
-            f"""INSERT INTO interns (name, email, phone, department, joining_date, created_at)
-                VALUES ({ph},{ph},{ph},{ph},{ph},{ph})""",
+            f"INSERT INTO interns (name, email, phone, department, joining_date, created_at) VALUES ({ph},{ph},{ph},{ph},{ph},{ph})",
             (name, email, phone, department, joining_date, datetime.now().isoformat()),
         )
         conn.commit()
