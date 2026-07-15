@@ -133,7 +133,9 @@ def init_db():
 def _ensure_columns(conn):
     """Add new columns to an existing tasks table if they're missing (safe upgrade)."""
     cur = conn.cursor()
-    if _use_postgres():
+    # Check connection type: psycopg2 connections have 'encoding' attribute, sqlite3 doesn't
+    is_pg = type(conn).__module__.startswith("psycopg2")
+    if is_pg:
         cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS file_name TEXT")
         cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS file_path TEXT")
         cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS submitted_at TEXT")
