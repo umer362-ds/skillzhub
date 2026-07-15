@@ -18,7 +18,6 @@ import os
 import uuid
 from datetime import datetime, date
 import database as db
-import psycopg2
 
 st.set_page_config(
     page_title="Skillzhub Intern Tracker",
