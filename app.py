@@ -248,8 +248,7 @@ if not is_authenticated():
             with col2:
                 department = st.selectbox(
                     "Department / Track",
-                    ["Web Development", "App Development", "AI/ML", "Data Science",
-                     "Graphic Design", "Digital Marketing", "Other"],
+                    ["Ebay", "Web Development", "Graphic Design"],
                 )
                 joining_date = st.date_input("Joining Date", value=date.today())
                 signup_username = st.text_input("Login Username *", placeholder="Choose a username")
@@ -439,7 +438,7 @@ elif page == "👤 Interns":
             phone = st.text_input("Phone")
             department = st.selectbox(
                 "Department / Track",
-                ["Web Development", "App Development", "AI/ML", "Data Science", "Graphic Design", "Digital Marketing", "Other"],
+                ["Ebay", "Web Development", "Graphic Design"],
             )
             joining_date = st.date_input("Joining Date", value=date.today())
             submitted = st.form_submit_button("Add Intern", use_container_width=True)
@@ -789,7 +788,7 @@ elif page == "👥 Manage Users":
     st.subheader("Manage User Accounts")
     st.caption("Create login credentials for interns so they can sign in and submit tasks.")
 
-    tab1, tab2 = st.tabs(["Create Intern Account", "All Users"])
+    tab1, tab2, tab3 = st.tabs(["Create Intern Account", "🔑 Change Password (Admin)", "All Users"])
 
     with tab1:
         st.subheader("Create Intern Login")
@@ -830,6 +829,40 @@ elif page == "👥 Manage Users":
                                 st.error(f"Username '{new_username}' is already taken. Please choose another.")
 
     with tab2:
+        st.subheader("🔑 Change Admin Password")
+        st.caption("Verify your current credentials to set a new password.")
+
+        with st.form("change_password_form", clear_on_submit=True):
+            col_a, col_b = st.columns(2)
+            with col_a:
+                curr_user = st.text_input("Current Username *", placeholder="Enter your current username")
+                curr_pass = st.text_input("Current Password *", type="password", placeholder="Enter your current password")
+            with col_b:
+                new_pass = st.text_input("New Password *", type="password", placeholder="Min 6 characters")
+                confirm_new_pass = st.text_input("Confirm New Password *", type="password")
+
+            submitted_pw = st.form_submit_button("Change Password", use_container_width=True)
+
+            if submitted_pw:
+                if not curr_user or not curr_pass:
+                    st.error("Please enter your current username and password.")
+                elif not new_pass:
+                    st.error("Please enter a new password.")
+                elif len(new_pass) < 6:
+                    st.error("New password must be at least 6 characters.")
+                elif new_pass != confirm_new_pass:
+                    st.error("New passwords do not match.")
+                else:
+                    success, msg = db.change_admin_password(curr_user, curr_pass, new_pass)
+                    if success:
+                        st.success(msg)
+                        st.balloons()
+                    else:
+                        st.error(msg)
+
+        st.markdown("---")
+
+    with tab3:
         st.subheader("All User Accounts")
 
         users = db.get_all_users()

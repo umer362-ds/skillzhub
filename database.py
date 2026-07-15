@@ -200,6 +200,28 @@ def signup_intern(name, email, phone, department, joining_date, username, passwo
         return (False, f"Could not create account: {err}")
 
 
+def change_admin_password(username, old_password, new_password):
+    """Change admin password after verifying old credentials. Returns (success, message)."""
+    ph = _ph()
+    user = verify_user(username, old_password)
+    if not user or user["role"] != "admin":
+        return (False, "Invalid username or current password.")
+    if len(new_password) < 6:
+        return (False, "New password must be at least 6 characters.")
+    hashed = _hash_password(new_password)
+    try:
+        with get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                f"UPDATE users SET password = {ph} WHERE id = {ph}",
+                (hashed, user["id"]),
+            )
+            conn.commit()
+            return (True, "Password changed successfully!")
+    except Exception as e:
+        return (False, f"Could not change password: {e}")
+
+
 def get_all_users():
     """Get all users for management."""
     with get_connection() as conn:
