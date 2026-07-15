@@ -509,8 +509,8 @@ elif page == "👤 Interns":
                         "Status": t["status"],
                         "Score": f'{t["score"]}/10' if t["score"] is not None else "—",
                         "Grade": grade_badge(t["grade"]) if t["grade"] else "—",
-                        "Submitted": t["submitted_at"][:16] if t["submitted_at"] else "—",
-                        "Completed": t["completed_at"][:16] if t["completed_at"] else "—",
+                        "Submitted": str(t["submitted_at"])[:16] if t["submitted_at"] else "—",
+                        "Completed": str(t["completed_at"])[:16] if t["completed_at"] else "—",
                     })
 
                 df_tasks = pd.DataFrame(tasks_data)
@@ -606,7 +606,7 @@ elif page == "📤 Submit Task (Intern)":
                 "Title": t["title"],
                 "Score": f'{t["score"]}/10' if t["score"] is not None else "—",
                 "Grade": grade_badge(t["grade"]) if t["grade"] else "—",
-                "Completed On": t["completed_at"][:16] if t["completed_at"] else "—",
+                "Completed On": str(t["completed_at"])[:16] if t["completed_at"] else "—",
             })
         df_completed = pd.DataFrame(completed_data)
         for idx, row in df_completed.iterrows():
@@ -619,7 +619,7 @@ elif page == "📤 Submit Task (Intern)":
     if my_submitted_tasks:
         st.markdown("### ⏳ Submitted — Awaiting Review")
         for t in my_submitted_tasks:
-            st.markdown(f"- **#{t['id']}** — {t['title']} (submitted {t['submitted_at'][:16] if t['submitted_at'] else ''})")
+            st.markdown(f"- **#{t['id']}** — {t['title']} (submitted {str(t['submitted_at'])[:16] if t['submitted_at'] else ''})")
         st.markdown("---")
 
     st.markdown("### 📤 Submit New Task")
@@ -665,16 +665,19 @@ elif page == "✅ Review & Score (Admin)":
     if not submitted:
         st.info("No submissions waiting for review.")
     else:
-        task_map = {
-            f'#{t["id"]} - {t["title"]} ({t["intern_name"]}) - submitted {t["submitted_at"][:16] if t["submitted_at"] else ""}': t["id"]
-            for t in submitted
-        }
+        task_map = {}
+        for t in submitted:
+            submitted_str = str(t["submitted_at"])[:16] if t["submitted_at"] else ""
+            task_map[f'#{t["id"]} - {t["title"]} ({t["intern_name"]}) - submitted {submitted_str}'] = t["id"]
+
         choice = st.selectbox("Select Submission", list(task_map.keys()))
         task_id = task_map[choice]
         selected_task = next(t for t in submitted if t["id"] == task_id)
 
+        assigned_str = str(selected_task["assigned_date"])[:16] if selected_task["assigned_date"] else ""
+        submitted_str = str(selected_task["submitted_at"])[:16] if selected_task["submitted_at"] else ""
         st.markdown(f"**Description:** {selected_task['description'] or '—'}")
-        st.markdown(f"**Assigned:** {selected_task['assigned_date'][:16]}  |  **Deadline:** {selected_task['deadline']}  |  **Submitted:** {selected_task['submitted_at'][:16]}")
+        st.markdown(f"**Assigned:** {assigned_str}  |  **Deadline:** {selected_task['deadline']}  |  **Submitted:** {submitted_str}")
 
         if selected_task["file_path"] and os.path.exists(selected_task["file_path"]):
             with open(selected_task["file_path"], "rb") as f:
@@ -756,8 +759,8 @@ elif page == "📋 All Records":
                 score_val = row.get("score")
                 submitted_val = row.get("submitted_at")
                 completed_val = row.get("completed_at")
-                submitted_display = str(submitted_val)[:16] if submitted_val and isinstance(submitted_val, str) else "—" if not submitted_val else str(submitted_val)[:16]
-                completed_display = str(completed_val)[:16] if completed_val and isinstance(completed_val, str) else "—" if not completed_val else str(completed_val)[:16]
+                submitted_display = str(submitted_val)[:16] if submitted_val else "—"
+                completed_display = str(completed_val)[:16] if completed_val else "—"
                 if score_val is not None:
                     st.markdown(f"Score: **{score_val}/10** | Submitted: {submitted_display} | Completed: {completed_display}")
 
