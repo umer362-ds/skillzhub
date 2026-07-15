@@ -16,21 +16,44 @@ Grading rule:
 """
 
 import streamlit as st
-import psycopg2
+import sqlite3
+import os
 import hashlib
 from datetime import datetime
+from contextlib import contextmanager
 
 # ---------------------------------------------------------------------------
-# CONFIG - Direct Connection via Streamlit Secrets
+# CONFIG - Try PostgreSQL via Streamlit Secrets, fallback to SQLite
 # ---------------------------------------------------------------------------
+SQLITE_PATH = os.path.join(os.path.dirname(__file__), "skillzhub.db")
+
+
+def _use_postgres():
+    """Check if PostgreSQL secrets are configured."""
+    try:
+        return st.secrets.get("postgres", {}).get("db_url") is not None
+    except Exception:
+        return False
+
+
+@contextmanager
 def get_connection():
-    """Returns a DB connection using Supabase connection string from secrets."""
-    return psycopg2.connect(st.secrets["postgres"]["db_url"])
+    """Returns a DB connection. Uses PostgreSQL if secrets configured, else SQLite."""
+    if _use_postgres():
+        import psycopg2
+        conn = psycopg2.connect(st.secrets["postgres"]["db_url"])
+    else:
+        conn = sqlite3.connect(SQLITE_PATH)
+        conn.execute("PRAGMA foreign_keys = ON")
+    try:
+        yield conn
+    finally:
+        conn.close()
 
 
 def _ph():
-    """Placeholder style for PostgreSQL."""
-    return "%s"
+    """Placeholder style differs between sqlite (?) and postgres (%s)."""
+    return "%s" if _use_postgres() else "?"
 
 
 def _hash_password(password):
@@ -45,7 +68,10 @@ def init_db():
     with get_connection() as conn:
         cur = conn.cursor()
 
-        id_type = "SERIAL PRIMARY KEY"
+        if _use_postgres():
+            id_type = "SERIAL PRIMARY KEY"
+        else:
+            id_type = "INTEGER PRIMARY KEY AUTOINCREMENT"
 
         cur.execute(f"""
             CREATE TABLE IF NOT EXISTS interns (
@@ -100,9 +126,16 @@ def init_db():
 def _ensure_columns(conn):
     """Add new columns to an existing tasks table if they're missing (safe upgrade)."""
     cur = conn.cursor()
-    cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS file_name TEXT")
-    cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS file_path TEXT")
-    cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS submitted_at TEXT")
+    if _use_postgres():
+        cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS file_name TEXT")
+        cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS file_path TEXT")
+        cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS submitted_at TEXT")
+    else:
+        cur.execute("PRAGMA table_info(tasks)")
+        existing = {row[1] for row in cur.fetchall()}
+        for col in ("file_name", "file_path", "submitted_at"):
+            if col not in existing:
+                cur.execute(f"ALTER TABLE tasks ADD COLUMN {col} TEXT")
     conn.commit()
 
 
@@ -177,12 +210,20 @@ def signup_intern(name, email, phone, department, joining_date, username, passwo
         with get_connection() as conn:
             cur = conn.cursor()
             # 1. Create intern profile
-            cur.execute(
-                f"""INSERT INTO interns (name, email, phone, department, joining_date, created_at)
-                    VALUES ({ph},{ph},{ph},{ph},{ph},{ph}) RETURNING id""",
-                (name, email, phone, department, joining_date, datetime.now().isoformat()),
-            )
-            intern_id = cur.fetchone()[0]
+            if _use_postgres():
+                cur.execute(
+                    f"""INSERT INTO interns (name, email, phone, department, joining_date, created_at)
+                        VALUES ({ph},{ph},{ph},{ph},{ph},{ph}) RETURNING id""",
+                    (name, email, phone, department, joining_date, datetime.now().isoformat()),
+                )
+                intern_id = cur.fetchone()[0]
+            else:
+                cur.execute(
+                    f"""INSERT INTO interns (name, email, phone, department, joining_date, created_at)
+                        VALUES ({ph},{ph},{ph},{ph},{ph},{ph})""",
+                    (name, email, phone, department, joining_date, datetime.now().isoformat()),
+                )
+                intern_id = cur.lastrowid
 
             # 2. Create user account linked to intern
             cur.execute(
