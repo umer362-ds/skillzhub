@@ -186,9 +186,9 @@ def get_grade(score):
 # ---------------------------------------------------------------------------
 def verify_user(username, password):
     """Check username/password. Returns user dict or None."""
-    ph = _ph()
     hashed = _hash_password(password)
     with get_connection() as conn:
+        ph = _ph()
         cur = conn.cursor()
         cur.execute(
             f"SELECT id, username, role, intern_id FROM users WHERE username = {ph} AND password = {ph}",
@@ -202,9 +202,9 @@ def verify_user(username, password):
 
 def create_intern_user(intern_id, username, password):
     """Create a user account for an intern."""
-    ph = _ph()
     hashed = _hash_password(password)
     with get_connection() as conn:
+        ph = _ph()
         cur = conn.cursor()
         try:
             cur.execute(
@@ -220,10 +220,10 @@ def create_intern_user(intern_id, username, password):
 def signup_intern(name, email, phone, department, joining_date, username, password):
     """Register a new intern with profile + login account in one step.
     Returns (success, message)."""
-    ph = _ph()
     hashed = _hash_password(password)
     try:
         with get_connection() as conn:
+            ph = _ph()
             cur = conn.cursor()
             # 1. Create intern profile
             if _actual_postgres:
@@ -259,7 +259,6 @@ def signup_intern(name, email, phone, department, joining_date, username, passwo
 
 def change_admin_password(username, old_password, new_password):
     """Change admin password after verifying old credentials. Returns (success, message)."""
-    ph = _ph()
     user = verify_user(username, old_password)
     if not user or user["role"] != "admin":
         return (False, "Invalid username or current password.")
@@ -268,6 +267,7 @@ def change_admin_password(username, old_password, new_password):
     hashed = _hash_password(new_password)
     try:
         with get_connection() as conn:
+            ph = _ph()
             cur = conn.cursor()
             cur.execute(
                 f"UPDATE users SET password = {ph} WHERE id = {ph}",
@@ -297,8 +297,8 @@ def get_all_users():
 # INTERNS
 # ---------------------------------------------------------------------------
 def add_intern(name, email, phone, department, joining_date):
-    ph = _ph()
     with get_connection() as conn:
+        ph = _ph()
         cur = conn.cursor()
         cur.execute(
             f"INSERT INTO interns (name, email, phone, department, joining_date, created_at) VALUES ({ph},{ph},{ph},{ph},{ph},{ph})",
@@ -316,8 +316,8 @@ def get_all_interns():
 
 
 def get_intern_by_id(intern_id):
-    ph = _ph()
     with get_connection() as conn:
+        ph = _ph()
         cur = conn.cursor()
         cur.execute(
             "SELECT id, name, email, phone, department, joining_date FROM interns WHERE id = " + ph,
@@ -332,7 +332,11 @@ def get_intern_score_summary():
     """Get each intern with their task count, avg score, and grade distribution."""
     with get_connection() as conn:
         cur = conn.cursor()
-        cur.execute("""
+        if _actual_postgres:
+            avg_sql = "ROUND(CAST(AVG(t.score) AS NUMERIC), 2)"
+        else:
+            avg_sql = "ROUND(AVG(t.score), 2)"
+        cur.execute(f"""
             SELECT
                 i.id,
                 i.name,
@@ -340,7 +344,7 @@ def get_intern_score_summary():
                 i.department,
                 COUNT(t.id) AS total_tasks,
                 COUNT(CASE WHEN t.status = 'Completed' THEN 1 END) AS completed_tasks,
-                ROUND(CAST(AVG(t.score) AS NUMERIC), 2) AS avg_score,
+                {avg_sql} AS avg_score,
                 COUNT(CASE WHEN t.grade = 'Excellent' THEN 1 END) AS excellent_count,
                 COUNT(CASE WHEN t.grade = 'Good' THEN 1 END) AS good_count,
                 COUNT(CASE WHEN t.grade = 'Fail' THEN 1 END) AS fail_count
@@ -354,8 +358,8 @@ def get_intern_score_summary():
 
 
 def delete_intern(intern_id):
-    ph = _ph()
     with get_connection() as conn:
+        ph = _ph()
         cur = conn.cursor()
         # Also delete the associated user account if exists
         cur.execute(f"DELETE FROM users WHERE intern_id = {ph}", (intern_id,))
@@ -367,8 +371,8 @@ def delete_intern(intern_id):
 # TASKS
 # ---------------------------------------------------------------------------
 def assign_task(intern_id, title, description, deadline):
-    ph = _ph()
     with get_connection() as conn:
+        ph = _ph()
         cur = conn.cursor()
         cur.execute(
             f"""INSERT INTO tasks (intern_id, title, description, assigned_date, deadline, status)
@@ -394,8 +398,8 @@ def get_all_tasks():
 
 
 def get_tasks_by_intern(intern_id):
-    ph = _ph()
     with get_connection() as conn:
+        ph = _ph()
         cur = conn.cursor()
         cur.execute(
             f"""SELECT id, title, description, assigned_date, deadline, status,
@@ -409,8 +413,8 @@ def get_tasks_by_intern(intern_id):
 
 def submit_task(task_id, file_name, file_path):
     """Intern uploads their completed work. Records the real completion timestamp."""
-    ph = _ph()
     with get_connection() as conn:
+        ph = _ph()
         cur = conn.cursor()
         cur.execute(
             f"""UPDATE tasks
@@ -440,8 +444,8 @@ def get_tasks_by_status(status):
 def complete_task(task_id, score):
     """Mark a task complete with a timestamp + score (0-10), auto-computes grade."""
     grade = get_grade(score)
-    ph = _ph()
     with get_connection() as conn:
+        ph = _ph()
         cur = conn.cursor()
         cur.execute(
             f"""UPDATE tasks
@@ -453,8 +457,8 @@ def complete_task(task_id, score):
 
 
 def delete_task(task_id):
-    ph = _ph()
     with get_connection() as conn:
+        ph = _ph()
         cur = conn.cursor()
         cur.execute(f"DELETE FROM tasks WHERE id = {ph}", (task_id,))
         conn.commit()
