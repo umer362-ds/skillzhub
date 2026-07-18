@@ -668,8 +668,8 @@ elif page == "📤 Submit Task (Intern)":
         st.markdown(f"**Instructions:** {selected['description'] or '—'}")
 
         uploaded_file = st.file_uploader(
-            "Upload your file (PDF, DOCX, ZIP, image, code file, etc.)",
-            type=None,
+            "Upload your file (PDF, DOCX, XLSX/XLS, ZIP, image, code file, etc.)",
+            type=["pdf", "docx", "xlsx", "xls", "zip", "png", "jpg", "jpeg", "py", "txt", "csv"],
         )
 
         if st.button("📤 Submit Task", use_container_width=True):
