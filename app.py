@@ -542,7 +542,11 @@ elif page == "👤 Interns":
                         ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"],
                         index=["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"].index(edit_info["department"]) if edit_info["department"] in ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"] else 0,
                     )
-                    edit_date = st.date_input("Joining Date", value=datetime.strptime(edit_info["joining_date"], "%Y-%m-%d").date() if edit_info["joining_date"] else date.today())
+                    try:
+                        edit_default_date = datetime.strptime(edit_info["joining_date"][:10], "%Y-%m-%d").date() if edit_info["joining_date"] else date.today()
+                    except (ValueError, TypeError):
+                        edit_default_date = date.today()
+                    edit_date = st.date_input("Joining Date", value=edit_default_date)
                     submitted_edit = st.form_submit_button("💾 Update Intern", use_container_width=True)
                     if submitted_edit:
                         if not edit_name or not edit_email:
@@ -722,7 +726,11 @@ elif page == "👤 My Profile":
             ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"],
             index=["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"].index(intern_info["department"]) if intern_info["department"] in ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"] else 0,
         )
-        new_joining_date = st.date_input("Joining Date", value=datetime.strptime(intern_info["joining_date"], "%Y-%m-%d").date() if intern_info["joining_date"] else date.today())
+        try:
+            default_date = datetime.strptime(intern_info["joining_date"][:10], "%Y-%m-%d").date() if intern_info["joining_date"] else date.today()
+        except (ValueError, TypeError):
+            default_date = date.today()
+        new_joining_date = st.date_input("Joining Date", value=default_date)
         submitted = st.form_submit_button("💾 Update Profile", use_container_width=True)
 
         if submitted:
