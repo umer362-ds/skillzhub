@@ -248,7 +248,7 @@ if not is_authenticated():
             with col2:
                 department = st.selectbox(
                     "Department / Track",
-                    ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"],
+                    ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Video Editor", "Other"],
                 )
                 joining_date = st.date_input("Joining Date", value=date.today())
                 signup_username = st.text_input("Login Username *", placeholder="Choose a username")
@@ -438,7 +438,7 @@ elif page == "👤 Interns":
             phone = st.text_input("Phone")
             department = st.selectbox(
                 "Department / Track",
-                ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"],
+                ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Video Editor", "Other"],
             )
             joining_date = st.date_input("Joining Date", value=date.today())
             submitted = st.form_submit_button("Add Intern", use_container_width=True)
@@ -539,8 +539,8 @@ elif page == "👤 Interns":
                     edit_phone = st.text_input("Phone", value=edit_info["phone"] or "")
                     edit_dept = st.selectbox(
                         "Department / Track",
-                        ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"],
-                        index=["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"].index(edit_info["department"]) if edit_info["department"] in ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"] else 0,
+                        ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Video Editor", "Other"],
+                        index=["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Video Editor", "Other"].index(edit_info["department"]) if edit_info["department"] in ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Video Editor", "Other"] else 0,
                     )
                     try:
                         edit_default_date = datetime.strptime(edit_info["joining_date"][:10], "%Y-%m-%d").date() if edit_info["joining_date"] else date.today()
@@ -723,8 +723,8 @@ elif page == "👤 My Profile":
         new_phone = st.text_input("Phone", value=intern_info["phone"] or "")
         new_department = st.selectbox(
             "Department / Track",
-            ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"],
-            index=["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"].index(intern_info["department"]) if intern_info["department"] in ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"] else 0,
+            ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Video Editor", "Other"],
+            index=["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Video Editor", "Other"].index(intern_info["department"]) if intern_info["department"] in ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Video Editor", "Other"] else 0,
         )
         try:
             default_date = datetime.strptime(intern_info["joining_date"][:10], "%Y-%m-%d").date() if intern_info["joining_date"] else date.today()
@@ -751,7 +751,7 @@ elif page == "👤 My Profile":
 elif page == "✅ Review & Score (Admin)":
     st.subheader("Review Submitted Work & Give Score")
 
-    departments = ["All Departments", "Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"]
+    departments = ["All Departments", "Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Video Editor", "Other"]
     selected_dept_review = st.selectbox("Filter by Department", departments, key="review_dept_filter")
 
     submitted = db.get_tasks_by_status("Submitted", department=selected_dept_review)
@@ -799,7 +799,7 @@ elif page == "✅ Review & Score (Admin)":
 elif page == "📋 All Records":
     st.subheader("All Task Records")
 
-    departments = ["All Departments", "Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"]
+    departments = ["All Departments", "Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Video Editor", "Other"]
     selected_dept_records = st.selectbox("Filter by Department", departments, key="records_dept_filter")
 
     tasks = db.get_all_tasks_by_department(department=selected_dept_records)
