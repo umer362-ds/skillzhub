@@ -751,7 +751,10 @@ elif page == "👤 My Profile":
 elif page == "✅ Review & Score (Admin)":
     st.subheader("Review Submitted Work & Give Score")
 
-    submitted = db.get_tasks_by_status("Submitted")
+    departments = ["All Departments", "Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"]
+    selected_dept_review = st.selectbox("Filter by Department", departments, key="review_dept_filter")
+
+    submitted = db.get_tasks_by_status("Submitted", department=selected_dept_review)
 
     if not submitted:
         st.info("No submissions waiting for review.")
@@ -796,7 +799,10 @@ elif page == "✅ Review & Score (Admin)":
 elif page == "📋 All Records":
     st.subheader("All Task Records")
 
-    tasks = db.get_all_tasks()
+    departments = ["All Departments", "Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"]
+    selected_dept_records = st.selectbox("Filter by Department", departments, key="records_dept_filter")
+
+    tasks = db.get_all_tasks_by_department(department=selected_dept_records)
     if not tasks:
         st.info("No records yet.")
     else:

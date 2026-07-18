@@ -414,18 +414,57 @@ def submit_task(task_id, file_name, file_path):
         conn.commit()
 
 
-def get_tasks_by_status(status):
+def get_tasks_by_status(status, department=None):
+    """Get tasks by status, optionally filtered by department."""
     with get_connection() as conn:
         cur = conn.cursor()
-        cur.execute("""
-            SELECT t.id, i.name AS intern_name, t.intern_id, t.title, t.description,
-                   t.assigned_date, t.deadline, t.status, t.file_name, t.file_path,
-                   t.submitted_at, t.completed_at, t.score, t.grade
-            FROM tasks t
-            JOIN interns i ON i.id = t.intern_id
-            WHERE t.status = %s
-            ORDER BY t.id DESC
-        """, (status,))
+        if department and department != "All Departments":
+            cur.execute("""
+                SELECT t.id, i.name AS intern_name, t.intern_id, t.title, t.description,
+                       t.assigned_date, t.deadline, t.status, t.file_name, t.file_path,
+                       t.submitted_at, t.completed_at, t.score, t.grade
+                FROM tasks t
+                JOIN interns i ON i.id = t.intern_id
+                WHERE t.status = %s AND i.department = %s
+                ORDER BY t.id DESC
+            """, (status, department))
+        else:
+            cur.execute("""
+                SELECT t.id, i.name AS intern_name, t.intern_id, t.title, t.description,
+                       t.assigned_date, t.deadline, t.status, t.file_name, t.file_path,
+                       t.submitted_at, t.completed_at, t.score, t.grade
+                FROM tasks t
+                JOIN interns i ON i.id = t.intern_id
+                WHERE t.status = %s
+                ORDER BY t.id DESC
+            """, (status,))
+        cols = [d[0] for d in cur.description]
+        return [dict(zip(cols, row)) for row in cur.fetchall()]
+
+
+def get_all_tasks_by_department(department=None):
+    """Get all tasks, optionally filtered by department."""
+    with get_connection() as conn:
+        cur = conn.cursor()
+        if department and department != "All Departments":
+            cur.execute("""
+                SELECT t.id, i.name AS intern_name, t.intern_id, t.title, t.description,
+                       t.assigned_date, t.deadline, t.status, t.file_name, t.file_path,
+                       t.submitted_at, t.completed_at, t.score, t.grade
+                FROM tasks t
+                JOIN interns i ON i.id = t.intern_id
+                WHERE i.department = %s
+                ORDER BY t.id DESC
+            """, (department,))
+        else:
+            cur.execute("""
+                SELECT t.id, i.name AS intern_name, t.intern_id, t.title, t.description,
+                       t.assigned_date, t.deadline, t.status, t.file_name, t.file_path,
+                       t.submitted_at, t.completed_at, t.score, t.grade
+                FROM tasks t
+                JOIN interns i ON i.id = t.intern_id
+                ORDER BY t.id DESC
+            """)
         cols = [d[0] for d in cur.description]
         return [dict(zip(cols, row)) for row in cur.fetchall()]
 
