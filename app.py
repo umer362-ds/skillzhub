@@ -836,24 +836,25 @@ elif page == "📋 All Records":
                 grade_display = grade_badge(row['grade']) if row['grade'] else "—"
                 c5.markdown(grade_display, unsafe_allow_html=True)
 
-                file_path = row.get("file_path", "")
-                file_name = row.get("file_name", "")
+                file_path = row.get("file_path")
+                file_name = row.get("file_name")
 
                 # Show submitted file download button
-                if file_name:
-                    # Try the stored absolute path first, then search in uploads folder
+                if file_name and isinstance(file_name, str) and file_name.strip():
                     file_bytes = None
-                    if file_path and isinstance(file_path, str) and os.path.exists(file_path):
+
+                    # Try the stored absolute path first
+                    if isinstance(file_path, str) and file_path and os.path.exists(file_path):
                         with open(file_path, "rb") as f:
                             file_bytes = f.read()
                     else:
-                        # Look up the file in the uploads directory by filename
-                        fname_only = os.path.basename(file_path) if file_path else ""
-                        if fname_only:
-                            alt_path = os.path.join(UPLOAD_DIR, fname_only)
-                            if os.path.exists(alt_path):
+                        # Search in uploads directory for any file matching this task
+                        for fname in os.listdir(UPLOAD_DIR):
+                            if str(row["id"]) in fname or (isinstance(file_path, str) and os.path.basename(file_path) and fname == os.path.basename(file_path)):
+                                alt_path = os.path.join(UPLOAD_DIR, fname)
                                 with open(alt_path, "rb") as f:
                                     file_bytes = f.read()
+                                break
 
                     if file_bytes:
                         st.download_button(
