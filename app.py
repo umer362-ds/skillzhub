@@ -837,23 +837,36 @@ elif page == "📋 All Records":
                 c5.markdown(grade_display, unsafe_allow_html=True)
 
                 file_path = row.get("file_path", "")
-                if file_path and isinstance(file_path, str) and os.path.exists(file_path):
-                    with open(row["file_path"], "rb") as f:
-                        file_bytes = f.read()
-                    st.download_button(
-                        f"⬇️ {row['file_name'] or 'Download File'}",
-                        file_bytes,
-                        file_name=row["file_name"] or f"task_{row['id']}.file",
-                        key=f"dl_{row['id']}",
-                    )
+                file_name = row.get("file_name", "")
+
+                # Show submitted file info + download if file exists
+                if file_name:
+                    if file_path and isinstance(file_path, str) and os.path.exists(file_path):
+                        with open(file_path, "rb") as f:
+                            file_bytes = f.read()
+                        st.download_button(
+                            f"⬇️ {file_name}",
+                            file_bytes,
+                            file_name=file_name,
+                            key=f"dl_{row['id']}",
+                        )
+                    else:
+                        st.markdown(f"📄 **Submitted File:** `{file_name}`")
 
                 score_val = row.get("score")
                 submitted_val = row.get("submitted_at")
                 completed_val = row.get("completed_at")
                 submitted_display = str(submitted_val)[:16] if submitted_val else "—"
                 completed_display = str(completed_val)[:16] if completed_val else "—"
+                info_parts = []
+                if submitted_val:
+                    info_parts.append(f"Submitted: {submitted_display}")
                 if score_val is not None:
-                    st.markdown(f"Score: **{score_val}/10** | Submitted: {submitted_display} | Completed: {completed_display}")
+                    info_parts.append(f"Score: **{score_val}/10**")
+                if completed_val:
+                    info_parts.append(f"Completed: {completed_display}")
+                if info_parts:
+                    st.markdown(" | ".join(info_parts))
 
                 st.markdown("---")
 
