@@ -248,7 +248,7 @@ if not is_authenticated():
             with col2:
                 department = st.selectbox(
                     "Department / Track",
-                    ["Ebay", "Web Development", "Graphic Design"],
+                    ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"],
                 )
                 joining_date = st.date_input("Joining Date", value=date.today())
                 signup_username = st.text_input("Login Username *", placeholder="Choose a username")
@@ -438,7 +438,7 @@ elif page == "👤 Interns":
             phone = st.text_input("Phone")
             department = st.selectbox(
                 "Department / Track",
-                ["Ebay", "Web Development", "Graphic Design"],
+                ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"],
             )
             joining_date = st.date_input("Joining Date", value=date.today())
             submitted = st.form_submit_button("Add Intern", use_container_width=True)
