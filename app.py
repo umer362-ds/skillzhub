@@ -318,7 +318,7 @@ if is_admin_user:
          "✅ Review & Score (Admin)", "📋 All Records", "👥 Manage Users"],
     )
 else:
-    page = st.sidebar.radio("Navigation Portal", ["📤 Submit Task (Intern)"])
+    page = st.sidebar.radio("Navigation Portal", ["📤 Submit Task (Intern)", "👤 My Profile"])
 
 # Logout and Grading Legend on Sidebar
 st.sidebar.markdown("---")
@@ -527,6 +527,35 @@ elif page == "👤 Interns":
                 st.info("No tasks found for this intern.")
 
             st.markdown("---")
+            st.subheader("✏️ Edit Intern Information")
+            intern_edit_map = {f'{i["name"]} (ID {i["id"]})': i["id"] for i in db.get_all_interns()}
+            selected_edit = st.selectbox("Select intern to edit", list(intern_edit_map.keys()), key="edit_intern_select")
+            edit_id = intern_edit_map[selected_edit]
+            edit_info = db.get_intern_by_id(edit_id)
+            if edit_info:
+                with st.form("edit_intern_form"):
+                    edit_name = st.text_input("Full Name *", value=edit_info["name"])
+                    edit_email = st.text_input("Email *", value=edit_info["email"])
+                    edit_phone = st.text_input("Phone", value=edit_info["phone"] or "")
+                    edit_dept = st.selectbox(
+                        "Department / Track",
+                        ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"],
+                        index=["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"].index(edit_info["department"]) if edit_info["department"] in ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"] else 0,
+                    )
+                    edit_date = st.date_input("Joining Date", value=datetime.strptime(edit_info["joining_date"], "%Y-%m-%d").date() if edit_info["joining_date"] else date.today())
+                    submitted_edit = st.form_submit_button("💾 Update Intern", use_container_width=True)
+                    if submitted_edit:
+                        if not edit_name or not edit_email:
+                            st.error("Name and Email are required.")
+                        else:
+                            try:
+                                db.update_intern(edit_id, edit_name, edit_email, edit_phone, edit_dept, str(edit_date))
+                                st.success("Intern profile updated successfully!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Could not update intern: {e}")
+
+            st.markdown("---")
             st.markdown("##### Remove an intern")
             names = {f'{i["name"]} (ID {i["id"]})': i["id"] for i in db.get_all_interns()}
             to_delete = st.selectbox("Select intern to remove (permanent)", list(names.keys()))
@@ -652,6 +681,60 @@ elif page == "📤 Submit Task (Intern)":
                 db.submit_task(task_id, uploaded_file.name, save_path)
                 st.success(f"Submitted '{uploaded_file.name}' at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}. Waiting for admin review.")
                 st.rerun()
+
+
+# ===========================================================================
+# PAGE: MY PROFILE (Intern-facing) — View & Update Info
+# ===========================================================================
+elif page == "👤 My Profile":
+    st.subheader("👤 My Profile")
+    st.caption("View and update your personal information.")
+
+    intern_id = user.get("intern_id")
+    if not intern_id:
+        st.error("Your intern account is not linked to an intern profile. Contact admin.")
+        st.stop()
+
+    intern_info = db.get_intern_by_id(intern_id)
+    if not intern_info:
+        st.error("Intern profile not found.")
+        st.stop()
+
+    # Display current info
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown(f"**Name:** {intern_info['name']}")
+        st.markdown(f"**Email:** {intern_info['email']}")
+        st.markdown(f"**Phone:** {intern_info['phone'] or '—'}")
+    with col2:
+        st.markdown(f"**Department:** {intern_info['department']}")
+        st.markdown(f"**Joining Date:** {intern_info['joining_date']}")
+
+    st.markdown("---")
+    st.markdown("### ✏️ Update Your Information")
+
+    with st.form("update_intern_profile_form"):
+        new_name = st.text_input("Full Name *", value=intern_info["name"])
+        new_email = st.text_input("Email *", value=intern_info["email"])
+        new_phone = st.text_input("Phone", value=intern_info["phone"] or "")
+        new_department = st.selectbox(
+            "Department / Track",
+            ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"],
+            index=["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"].index(intern_info["department"]) if intern_info["department"] in ["Ebay", "Web Development", "Graphic Design", "Social Media Manager", "Other"] else 0,
+        )
+        new_joining_date = st.date_input("Joining Date", value=datetime.strptime(intern_info["joining_date"], "%Y-%m-%d").date() if intern_info["joining_date"] else date.today())
+        submitted = st.form_submit_button("💾 Update Profile", use_container_width=True)
+
+        if submitted:
+            if not new_name or not new_email:
+                st.error("Name and Email are required.")
+            else:
+                try:
+                    db.update_intern(intern_id, new_name, new_email, new_phone, new_department, str(new_joining_date))
+                    st.success("Profile updated successfully!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Could not update profile: {e}")
 
 
 # ===========================================================================

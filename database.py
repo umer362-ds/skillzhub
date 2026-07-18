@@ -332,6 +332,20 @@ def get_intern_score_summary():
         return [dict(zip(cols, row)) for row in cur.fetchall()]
 
 
+def update_intern(intern_id, name, email, phone, department, joining_date):
+    """Update an intern's profile information."""
+    with get_connection() as conn:
+        ph = _ph()
+        cur = conn.cursor()
+        cur.execute(
+            f"""UPDATE interns
+                SET name = {ph}, email = {ph}, phone = {ph}, department = {ph}, joining_date = {ph}
+                WHERE id = {ph}""",
+            (name, email, phone, department, joining_date, intern_id),
+        )
+        conn.commit()
+
+
 def delete_intern(intern_id):
     with get_connection() as conn:
         ph = _ph()
