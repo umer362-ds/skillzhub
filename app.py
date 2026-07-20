@@ -996,7 +996,10 @@ elif page == "👥 Manage Users":
             st.info("No user accounts yet.")
         else:
             df = pd.DataFrame(users)
-            df.columns = ["ID", "Username", "Role", "Intern ID", "Intern Name"]
+            # Show password_display instead of the hash
+            df["password_display"] = df["password_display"].fillna("—")
+            df = df[["id", "username", "password_display", "role", "intern_id", "intern_name"]]
+            df.columns = ["ID", "Username", "Password", "Role", "Intern ID", "Intern Name"]
             df["Role"] = df["Role"].apply(lambda r: "👑 Admin" if r == "admin" else "👤 Intern")
             st.dataframe(df, use_container_width=True, hide_index=True)
 

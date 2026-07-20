@@ -138,6 +138,7 @@ def _ensure_columns(conn):
     cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS file_name TEXT")
     cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS file_path TEXT")
     cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS submitted_at TEXT")
+    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_display TEXT")
     conn.commit()
 
 
@@ -149,8 +150,8 @@ def _seed_default_admin(conn):
         ph = _ph()
         hashed = _hash_password("admin123")
         cur.execute(
-            f"INSERT INTO users (username, password, role, created_at) VALUES ({ph},{ph},{ph},{ph})",
-            ("admin", hashed, "admin", datetime.now().isoformat()),
+            f"INSERT INTO users (username, password, role, created_at, password_display) VALUES ({ph},{ph},{ph},{ph},{ph})",
+            ("admin", hashed, "admin", datetime.now().isoformat(), "admin123"),
         )
         conn.commit()
 
@@ -194,8 +195,8 @@ def create_intern_user(intern_id, username, password):
         cur = conn.cursor()
         try:
             cur.execute(
-                f"INSERT INTO users (username, password, role, intern_id, created_at) VALUES ({ph},{ph},{ph},{ph},{ph})",
-                (username, hashed, "intern", intern_id, datetime.now().isoformat()),
+                f"INSERT INTO users (username, password, role, intern_id, created_at, password_display) VALUES ({ph},{ph},{ph},{ph},{ph},{ph})",
+                (username, hashed, "intern", intern_id, datetime.now().isoformat(), password),
             )
             conn.commit()
             return True
@@ -221,8 +222,8 @@ def signup_intern(name, email, phone, department, joining_date, username, passwo
 
             # 2. Create user account linked to intern
             cur.execute(
-                f"INSERT INTO users (username, password, role, intern_id, created_at) VALUES ({ph},{ph},{ph},{ph},{ph})",
-                (username, hashed, "intern", intern_id, datetime.now().isoformat()),
+                f"INSERT INTO users (username, password, role, intern_id, created_at, password_display) VALUES ({ph},{ph},{ph},{ph},{ph},{ph})",
+                (username, hashed, "intern", intern_id, datetime.now().isoformat(), password),
             )
             conn.commit()
             return (True, "Account created successfully! You can now login.")
@@ -248,8 +249,8 @@ def change_admin_password(username, old_password, new_password):
             ph = _ph()
             cur = conn.cursor()
             cur.execute(
-                f"UPDATE users SET password = {ph} WHERE id = {ph}",
-                (hashed, user["id"]),
+                f"UPDATE users SET password = {ph}, password_display = {ph} WHERE id = {ph}",
+                (hashed, new_password, user["id"]),
             )
             conn.commit()
             return (True, "Password changed successfully!")
@@ -262,7 +263,7 @@ def get_all_users():
     with get_connection() as conn:
         cur = conn.cursor()
         cur.execute("""
-            SELECT u.id, u.username, u.role, u.intern_id, i.name AS intern_name
+            SELECT u.id, u.username, u.password, u.password_display, u.role, u.intern_id, i.name AS intern_name
             FROM users u
             LEFT JOIN interns i ON i.id = u.intern_id
             ORDER BY u.id
