@@ -197,6 +197,12 @@ def verify_user(username, password):
                 # Compare password hashes
                 hashed_input = _hash_password(password)
                 hashed_stored = db_password.strip() if db_password else db_password
+                # DEBUG: Print hash comparison info
+                print(f"[DEBUG] Attempting login for: {username}")
+                print(f"[DEBUG] DB username: {db_username}")
+                print(f"[DEBUG] Input hash: {hashed_input}")
+                print(f"[DEBUG] Stored hash: {hashed_stored}")
+                print(f"[DEBUG] Match: {hashed_input == hashed_stored}")
                 if hashed_input == hashed_stored:
                     return {"id": user_id, "username": db_username, "role": role, "intern_id": intern_id}
         return None
