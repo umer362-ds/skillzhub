@@ -70,6 +70,8 @@ def _ph():
 
 def _hash_password(password):
     """Simple SHA-256 hash for password storage."""
+    # Normalize password: strip whitespace from both ends
+    password = password.strip() if password else password
     return hashlib.sha256(password.encode()).hexdigest()
 
 
@@ -176,24 +178,33 @@ def get_grade(score):
 # ---------------------------------------------------------------------------
 def verify_user(username, password):
     """Check username/password. Returns user dict or None."""
-    username = username.strip() if username else username
-    hashed = _hash_password(password)
+    # Normalize username: remove extra spaces and trim
+    username = ' '.join(username.split()) if username else username
+    # Normalize password: strip whitespace
+    password = password.strip() if password else password
     with get_connection() as conn:
         ph = _ph()
         cur = conn.cursor()
+        # Fetch all users and match in Python for robust comparison
         cur.execute(
-            f"SELECT id, username, role, intern_id FROM users WHERE LOWER(username) = LOWER({ph}) AND password = {ph}",
-            (username, hashed),
+            f"SELECT id, username, password, role, intern_id FROM users",
         )
-        row = cur.fetchone()
-        if row:
-            return {"id": row[0], "username": row[1], "role": row[2], "intern_id": row[3]}
+        for row in cur.fetchall():
+            user_id, db_username, db_password, role, intern_id = row
+            # Normalize stored username for comparison
+            normalized_db_username = ' '.join(db_username.split()) if db_username else db_username
+            if normalized_db_username.lower() == username.lower():
+                # Compare password hashes
+                hashed_input = _hash_password(password)
+                hashed_stored = db_password.strip() if db_password else db_password
+                if hashed_input == hashed_stored:
+                    return {"id": user_id, "username": db_username, "role": role, "intern_id": intern_id}
         return None
 
 
 def create_intern_user(intern_id, username, password):
     """Create a user account for an intern."""
-    username = username.strip()
+    username = ' '.join(username.split()) if username else username
     hashed = _hash_password(password)
     with get_connection() as conn:
         ph = _ph()
@@ -213,7 +224,7 @@ def create_intern_user(intern_id, username, password):
 def signup_intern(name, email, phone, department, joining_date, username, password):
     """Register a new intern with profile + login account in one step.
     Returns (success, message)."""
-    username = username.strip()
+    username = ' '.join(username.split()) if username else username
     hashed = _hash_password(password)
     try:
         with get_connection() as conn:
@@ -245,7 +256,7 @@ def signup_intern(name, email, phone, department, joining_date, username, passwo
 
 def change_admin_password(username, old_password, new_password):
     """Change admin password after verifying old credentials. Returns (success, message)."""
-    username = username.strip()
+    username = ' '.join(username.split()) if username else username
     user = verify_user(username, old_password)
     if not user or user["role"] != "admin":
         return (False, "Invalid username or current password.")

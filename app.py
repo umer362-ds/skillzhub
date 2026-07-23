@@ -163,6 +163,8 @@ st.markdown("""
 # AUTHENTICATION HELPERS
 # ===========================================================================
 def login_user(username, password):
+    # Normalize username: trim and collapse multiple spaces
+    username = ' '.join(username.split()) if username else username
     user = db.verify_user(username, password)
     if user:
         st.session_state["authenticated"] = True
@@ -229,7 +231,7 @@ if not is_authenticated():
                     st.success("Login successful!")
                     st.rerun()
                 else:
-                    st.error("Invalid username or password.")
+                    st.warning("Invalid username or password. Please check and try again.")
 
         st.markdown('</div>', unsafe_allow_html=True)
 
