@@ -131,6 +131,8 @@ def init_db():
         # Seed default admin if not exists
         _seed_default_admin(conn)
 
+    # Connection closed
+
 
 def _ensure_columns(conn):
     """Add new columns to an existing tasks table if they're missing (safe upgrade)."""
@@ -139,6 +141,7 @@ def _ensure_columns(conn):
     cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS file_path TEXT")
     cur.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS submitted_at TEXT")
     cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_display TEXT")
+    cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS password TEXT")
     conn.commit()
 
 
@@ -173,12 +176,13 @@ def get_grade(score):
 # ---------------------------------------------------------------------------
 def verify_user(username, password):
     """Check username/password. Returns user dict or None."""
+    username = username.strip() if username else username
     hashed = _hash_password(password)
     with get_connection() as conn:
         ph = _ph()
         cur = conn.cursor()
         cur.execute(
-            f"SELECT id, username, role, intern_id FROM users WHERE username = {ph} AND password = {ph}",
+            f"SELECT id, username, role, intern_id FROM users WHERE LOWER(username) = LOWER({ph}) AND password = {ph}",
             (username, hashed),
         )
         row = cur.fetchone()
@@ -189,6 +193,7 @@ def verify_user(username, password):
 
 def create_intern_user(intern_id, username, password):
     """Create a user account for an intern."""
+    username = username.strip()
     hashed = _hash_password(password)
     with get_connection() as conn:
         ph = _ph()
@@ -200,13 +205,15 @@ def create_intern_user(intern_id, username, password):
             )
             conn.commit()
             return True
-        except Exception:
+        except Exception as e:
+            print(f"Error creating intern user: {e}")
             return False
 
 
 def signup_intern(name, email, phone, department, joining_date, username, password):
     """Register a new intern with profile + login account in one step.
     Returns (success, message)."""
+    username = username.strip()
     hashed = _hash_password(password)
     try:
         with get_connection() as conn:
@@ -238,6 +245,7 @@ def signup_intern(name, email, phone, department, joining_date, username, passwo
 
 def change_admin_password(username, old_password, new_password):
     """Change admin password after verifying old credentials. Returns (success, message)."""
+    username = username.strip()
     user = verify_user(username, old_password)
     if not user or user["role"] != "admin":
         return (False, "Invalid username or current password.")
